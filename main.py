@@ -1,7 +1,7 @@
 from typing import Union
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel
 import sqlite3
-
 
 app = FastAPI()
 
@@ -41,3 +41,34 @@ def read_root():
 # @app.get("/teste")
 # def read_root():
 #     return 
+class Usuario(BaseModel):
+    nome: str
+    email: str
+
+@app.post("/register")
+def registrar(usuario: Usuario):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("INSERT INTO ELEITOR (Nome, email) VALUES (?, ?)", (usuario.nome, usuario.email))
+        conn.commit()
+        return {"message": "Usuário registrado com sucesso"}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    finally:
+        conn.close()
+
+@app.post("/login")
+def login(usuario: Usuario):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM ELEITOR WHERE Nome=? AND email=?", (usuario.nome, usuario.email))
+    resultado = cursor.fetchone()
+    conn.close()
+
+    if resultado:
+        return {"access_token": "fake-jwt-token", "token_type": "bearer"}
+    else:
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
