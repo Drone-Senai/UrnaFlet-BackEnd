@@ -1,7 +1,10 @@
 from typing import Union
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from pydantic import BaseModel
 import sqlite3
+import base64
+from fastapi.responses import StreamingResponse
+import io
 
 app = FastAPI()
 
@@ -72,3 +75,44 @@ def login(usuario: Usuario):
         return {"access_token": "fake-jwt-token", "token_type": "bearer"}
     else:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    
+@app.post("/objeto")
+async def cadastrar_objeto(
+    nome: str = Form(...),
+    descricao: str = Form(...),
+    foto: UploadFile = File(...)
+):
+    try:
+        foto_bytes = await foto.read()
+        conn = sqlite3.connect("votacao.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO OBJETO (Nome, Foto, Descricao) VALUES (?, ?, ?)",
+            (nome, foto_bytes, descricao)
+        )
+        objeto_id = cursor.lastrowid 
+        foto_base64 = base64.b64encode(foto_bytes).decode("utf-8")
+        conn.commit()
+        conn.close()
+        return {
+            "id": objeto_id,
+            "nome": nome,
+            "descricao": descricao
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+
+@app.get("/imagem/{id_objeto}")
+def obter_imagem(id_objeto: int):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT Foto FROM OBJETO WHERE ID_Objeto = ?", (id_objeto,))
+    resultado = cursor.fetchone()
+    conn.close()
+
+    if resultado and resultado[0]:
+        return StreamingResponse(io.BytesIO(resultado[0]), media_type="image/png")
+    else:
+        raise HTTPException(status_code=404, detail="Imagem não encontrada")
