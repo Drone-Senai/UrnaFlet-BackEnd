@@ -116,3 +116,25 @@ def obter_imagem(id_objeto: int):
         return StreamingResponse(io.BytesIO(resultado[0]), media_type="image/png")
     else:
         raise HTTPException(status_code=404, detail="Imagem não encontrada")
+
+# VOTAÇÃO
+
+class Votacao(BaseModel):
+    nome: str
+    tema: str
+    data_hoje: str
+    data_encerramento: str
+
+@app.post("/addVotacao")
+def registrar(votacao: Votacao):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("INSERT INTO VOTACAO (Nome, Tema, Data_inicio, Data_final, Status_Votacao) VALUES (?, ?, ?, ?, ?)", (votacao.nome, votacao.tema, votacao.data_hoje, votacao.data_encerramento, 1))
+        conn.commit()
+        return {"message": "Votação adicionada com sucesso"}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Votação já existente")
+    finally:
+        conn.close()
