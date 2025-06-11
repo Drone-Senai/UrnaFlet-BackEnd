@@ -119,6 +119,27 @@ def obter_imagem(id_objeto: int):
 
 # VOTAÇÃO
 
+class Votacao(BaseModel):
+    nome: str
+    tema: str
+    data_hoje: str
+    data_encerramento: str
+
+@app.post("/addVotacao")
+def registrar(votacao: Votacao):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("INSERT INTO VOTACAO (Nome, Tema, Data_inicio, Data_final, Status_Votacao) VALUES (?, ?, ?, ?, ?)", (votacao.nome, votacao.tema, votacao.data_hoje, votacao.data_encerramento, 1))
+        conn.commit()
+        return {"message": "Votação adicionada com sucesso"}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Votação já existente")
+    finally:
+        conn.close()
+
+# --------------------------------------------------------------------
 
 @app.get("/votacoes")
 def listar_votacoes():
@@ -197,6 +218,32 @@ def add_objeto_votacao(obj_vot: ObjetoVotacao):
     
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        conn.close()
+
+# ENCERRAR VOTAÇÃO
+
+class EncerrarVotacao(BaseModel):
+    id_votacao: int
+
+@app.post("/encerrarVotacao")
+def encerrar_votacao(request: EncerrarVotacao):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE VOTACAO
+            SET Status_Votacao = 0
+            WHERE ID_Votacao = ?
+        """, (request.id_votacao,))  # vírgula para formar uma tupla!
+
+        conn.commit()
+        return {"message": f"Votação {request.id_votacao} encerrada com sucesso!"}
+    
+    except Exception as e:
+        return {"detail": f"Erro ao encerrar votação: {e}"}
     
     finally:
         conn.close()
