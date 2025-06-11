@@ -119,26 +119,7 @@ def obter_imagem(id_objeto: int):
 
 # VOTAÇÃO
 
-class Votacao(BaseModel):
-    nome: str
-    tema: str
-    data_hoje: str
-    data_encerramento: str
 
-@app.post("/addVotacao")
-def registrar(votacao: Votacao):
-    conn = sqlite3.connect("votacao.db")
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute("INSERT INTO VOTACAO (Nome, Tema, Data_inicio, Data_final, Status_Votacao) VALUES (?, ?, ?, ?, ?)", (votacao.nome, votacao.tema, votacao.data_hoje, votacao.data_encerramento, 1))
-        conn.commit()
-        return {"message": "Votação adicionada com sucesso"}
-    except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="Votação já existente")
-    finally:
-        conn.close()
-        
 @app.get("/votacoes")
 def listar_votacoes():
     conn = sqlite3.connect("votacao.db")
@@ -149,3 +130,73 @@ def listar_votacoes():
 
     colunas = ["ID_Votacao", "Nome", "Tema", "Data_inicio", "Data_final"]
     return [dict(zip(colunas, linha)) for linha in registros]
+
+# ROTA QUE RETORNA TODAS AS VOTAÇÕES E OBJETOS
+
+def retornar_votacoes():
+    conn = sqlite3.connect('votacao.db')
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT * FROM VOTACAO")
+        registros = cursor.fetchall()
+        colunas = [desc[0] for desc in cursor.description]
+
+        lista_votacoes = [dict(zip(colunas, linha)) for linha in registros]
+        return lista_votacoes
+    except sqlite3.Error as e:
+        return {"erro": str(e)}
+    finally:
+        conn.close()
+
+@app.get("/votacoes")
+def read_root():
+    return retornar_votacoes()
+
+# ---------------------------------------
+
+@app.get("/objetos")
+def listar_objetos():
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT ID_Objeto, Nome FROM OBJETO")
+    objetos = cursor.fetchall()
+    conn.close()
+
+    return [{"id": row[0], "nome": row[1]} for row in objetos]
+
+
+# ROTA QUE CRIA RELAÇÃO OBJETO_VOTACAO
+
+class ObjetoVotacao(BaseModel):
+    id_votacao: int
+    id_objeto: int
+
+@app.post("/addObjetoVotacao")
+def add_objeto_votacao(obj_vot: ObjetoVotacao):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        # Verifica se já existe
+        cursor.execute("""
+            SELECT 1 FROM OBJETO_VOTACAO 
+            WHERE ID_Votacao = ? AND ID_Objeto = ?
+        """, (obj_vot.id_votacao, obj_vot.id_objeto))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Objeto já adicionado à votação.")
+
+        cursor.execute("""
+            INSERT INTO OBJETO_VOTACAO (ID_Votacao, ID_Objeto)
+            VALUES (?, ?)
+        """, (obj_vot.id_votacao, obj_vot.id_objeto))
+        conn.commit()
+        return {"message": "Objeto adicionado com sucesso"}
+    
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        conn.close()
