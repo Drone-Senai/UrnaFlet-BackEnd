@@ -138,3 +138,14 @@ def registrar(votacao: Votacao):
         raise HTTPException(status_code=400, detail="Votação já existente")
     finally:
         conn.close()
+        
+@app.get("/votacoes")
+def listar_votacoes():
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT ID_Votacao, Nome, Tema, Data_inicio, Data_final FROM VOTACAO")
+    registros = cursor.fetchall()
+    conn.close()
+
+    colunas = ["ID_Votacao", "Nome", "Tema", "Data_inicio", "Data_final"]
+    return [dict(zip(colunas, linha)) for linha in registros]
