@@ -45,7 +45,7 @@ def read_root():
 # def read_root():
 #     return 
 class Usuario(BaseModel):
-    nome: str
+    # nome: str
     email: str
 
 @app.post("/register")
@@ -54,7 +54,7 @@ def registrar(usuario: Usuario):
     cursor = conn.cursor()
 
     try:
-        cursor.execute("INSERT INTO ELEITOR (Nome, email) VALUES (?, ?)", (usuario.nome, usuario.email))
+        cursor.execute("INSERT INTO ELEITOR (Nome, email) VALUES (?, ?)", ('teste', usuario.email))
         conn.commit()
         return {"message": "Usuário registrado com sucesso"}
     except sqlite3.IntegrityError:
@@ -245,5 +245,35 @@ def encerrar_votacao(request: EncerrarVotacao):
     except Exception as e:
         return {"detail": f"Erro ao encerrar votação: {e}"}
     
+    finally:
+        conn.close()
+
+# CADASTRAR E ENTRAR EMAIL
+
+@app.post("/verificar-email")
+def verificar_email(data: dict):
+    email = data["email"]
+    
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT 1 FROM ELEITOR WHERE email = ?", (email,))
+        resultado = cursor.fetchone()
+        return {"existe": resultado is not None}
+
+    finally:
+        conn.close()
+
+def verificar_confirmacao(email: str):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT confirmado FROM usuarios WHERE email = ?", (email,))
+        resultado = cursor.fetchone()
+        if resultado and resultado[0]:  # resultado[0] == True
+            return {"confirmado": True}
+        return {"confirmado": False}
     finally:
         conn.close()
