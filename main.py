@@ -187,6 +187,17 @@ def listar_objetos():
 
     return [{"id": row[0], "nome": row[1]} for row in objetos]
 
+@app.get("/eleitores")
+def listar_eleitores():
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT ID_Eleitor, Nome FROM ELEITOR")
+    eleitores = cursor.fetchall()
+    conn.close()
+
+    return [{"id": row[0], "nome": row[1]} for row in eleitores]
+
 
 # ROTA QUE CRIA RELAÇÃO OBJETO_VOTACAO
 
@@ -215,6 +226,41 @@ def add_objeto_votacao(obj_vot: ObjetoVotacao):
         """, (obj_vot.id_votacao, obj_vot.id_objeto))
         conn.commit()
         return {"message": "Objeto adicionado com sucesso"}
+    
+    except sqlite3.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        conn.close()
+        
+# ROTA QUE CRIA RELAÇÃO ELEITOR_VOTACAO
+
+class EleitorVotacao(BaseModel):
+    id_votacao: int
+    id_eleitor: int
+    valido: int
+
+@app.post("/addEleitorVotacao")
+def add_eleitor_votacao(elei_vot: EleitorVotacao):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        # Verifica se já existe
+        cursor.execute("""
+            SELECT 1 FROM ELEITOR_VOTACAO 
+            WHERE ID_Votacao = ? AND ID_Eleitor = ?
+        """, (elei_vot.id_votacao, elei_vot.id_eleitor))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Eleitor já adicionado à votação.")
+
+        cursor.execute("""
+            INSERT INTO ELEITOR_VOTACAO (ID_Votacao, ID_Eleitor, Valido)
+            VALUES (?, ?, ?)
+        """, (elei_vot.id_votacao, elei_vot.id_eleitor, elei_vot.valido))
+        conn.commit()
+        return {"message": "Eleitor adicionado com sucesso"}
     
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -277,3 +323,6 @@ def verificar_confirmacao(email: str):
         return {"confirmado": False}
     finally:
         conn.close()
+
+# ROTA PARA QUE VOTE 
+
