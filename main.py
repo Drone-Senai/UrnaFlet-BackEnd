@@ -419,3 +419,34 @@ def registrar_token(data: dict):
         return {"token": token}
     finally:
         conn.close()
+        
+# ROTA DO RESULTADO DA VOTAÇÃO
+
+@app.get("/resultados")
+def retornar_resultados(id_votacao: str = None):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT 
+            O.ID_Objeto,
+            O.Nome,
+            COUNT(V.ID_Voto) AS Total_Votos
+        FROM 
+            VOTO V
+        JOIN OBJETO_VOTACAO OV 
+            ON V.ID_Objeto_Votacao = OV.ID_Objeto_Votacao
+        JOIN OBJETO O 
+            ON OV.ID_Objeto = O.ID_Objeto
+        WHERE OV.ID_Votacao = ?
+        GROUP BY O.ID_Objeto, O.Nome
+        ORDER BY Total_Votos DESC
+    """, (id_votacao,))
+
+    resultados = cursor.fetchall()
+    conn.close()
+
+    return [
+        {"id": row[0], "nome": row[1], "total_votos": row[2]}
+        for row in resultados
+    ]
