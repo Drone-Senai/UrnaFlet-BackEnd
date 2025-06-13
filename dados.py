@@ -18,6 +18,8 @@ cursor.execute("INSERT INTO VOTACAO (Nome, Tema, Data_inicio, Data_final, Status
 cursor.execute("INSERT INTO ELEITOR (Nome, email) VALUES (?, ?)", ("Ana Silva", "ana@email.com"))
 cursor.execute("INSERT INTO ELEITOR (Nome, email) VALUES (?, ?)", ("João Pedro", "joao@email.com"))
 cursor.execute("INSERT INTO ELEITOR (Nome, email) VALUES (?, ?)", ("Mariana Costa", "mariana@email.com"))
+cursor.execute("INSERT INTO ADMINiSTRADOR (Nome, email) VALUES (?, ?)", ("carlos", "carloseduardodorth123@gmail.com"))
+
 
 # Associar eleitores a votações
 cursor.execute("INSERT INTO ELEITOR_VOTACAO (ID_Votacao, ID_Eleitor, Valido) VALUES (?, ?, ?)", (1, 1, 1))

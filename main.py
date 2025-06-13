@@ -450,3 +450,13 @@ def retornar_resultados(id_votacao: str = None):
         {"id": row[0], "nome": row[1], "total_votos": row[2]}
         for row in resultados
     ]
+
+@app.post("/verificar-administrador")
+def verificar_administrador(dados: dict):
+    email = dados.get("email")
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ADMINISTRADOR WHERE Email = ?", (email,))
+    admin = cursor.fetchone()
+    conn.close()
+    return {"administrador": bool(admin)}
