@@ -5,6 +5,8 @@ import sqlite3
 import base64
 from fastapi.responses import StreamingResponse
 import io
+from uuid import uuid4
+from fastapi.responses import HTMLResponse, JSONResponse
 
 app = FastAPI()
 
@@ -370,5 +372,50 @@ def votar(request: voto):
     except sqlite3.Error as e:
         return {"erro": str(e)}
 
+    finally:
+        conn.close()
+
+
+@app.get("/confirmar")
+def confirmar_email(email: str):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE CONFIRMACAO_EMAIL SET confirmado = 1 WHERE email = ?", (email,))
+        conn.commit()
+        return HTMLResponse("<h2 style='color:green;'>Email confirmado com sucesso! Você pode voltar à plataforma.</h2>")
+    except Exception as e:
+        return HTMLResponse(f"<h2>Erro: {e}</h2>", status_code=500)
+    finally:
+        conn.close()
+
+@app.get("/confirmado")
+def confirmado(email: str):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT confirmado FROM CONFIRMACAO_EMAIL WHERE email = ?", (email,))
+        row = cursor.fetchone()
+        if row and row[0] == 1:
+            return {"confirmado": True}
+        return {"confirmado": False}
+    finally:
+        conn.close()
+
+@app.post("/registrar-token")
+def registrar_token(data: dict):
+    email = data["email"]
+    token = str(uuid4())
+    
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO CONFIRMACAO_EMAIL (email, token, confirmado)
+            VALUES (?, ?, 0)
+            ON CONFLICT(email) DO UPDATE SET token = excluded.token, confirmado = 0
+        """, (email, token))
+        conn.commit()
+        return {"token": token}
     finally:
         conn.close()

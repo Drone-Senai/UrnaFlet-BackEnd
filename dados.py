@@ -10,9 +10,9 @@ cursor.execute("INSERT INTO ADMINISTRADOR (Nome, email) VALUES (?, ?)", ("Fernan
 
 # Inserir algumas votações
 cursor.execute("INSERT INTO VOTACAO (Nome, Tema, Data_inicio, Data_final, Status_Votacao) VALUES (?, ?, ?, ?, ?)",
-               ("Eleição de Representante", "Escolha do líder de turma", "2025-06-01", "2025-06-15", 1))
+               ("Eleição de Representante", "Escolha do líder de turma", "01/06/2025", "05/07/2025", 1))
 cursor.execute("INSERT INTO VOTACAO (Nome, Tema, Data_inicio, Data_final, Status_Votacao) VALUES (?, ?, ?, ?, ?)",
-               ("Mascote da escola", "Escolher novo mascote", "2025-06-05", "2025-06-20", 1))
+               ("Mascote da escola", "Escolher novo mascote", "11/02/2025", "01/08/2025", 1))
 
 # Inserir alguns eleitores
 cursor.execute("INSERT INTO ELEITOR (Nome, email) VALUES (?, ?)", ("Ana Silva", "ana@email.com"))

@@ -78,6 +78,14 @@ CREATE TABLE IF NOT EXISTS VOTO (
 );
 ''')
 
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS CONFIRMACAO_EMAIL (
+    email TEXT PRIMARY KEY,
+    token TEXT,
+    confirmado INTEGER DEFAULT 0
+);
+''')
+
 # Salvando alterações e fechando conexão
 conn.commit()
 conn.close()
