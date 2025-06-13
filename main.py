@@ -326,3 +326,49 @@ def verificar_confirmacao(email: str):
 
 # ROTA PARA QUE VOTE 
 
+class voto(BaseModel):
+    id_votacao: int
+    id_eleitor: int
+    id_objeto_votacao: int
+
+@app.post("/adicionar_voto")
+def votar(request: voto):
+    conn = sqlite3.connect("votacao.db")
+    cursor = conn.cursor()
+
+    try:
+        # Busca o ID_Eleitor_Votacao correspondente
+        cursor.execute("""
+            SELECT ID_Eleitor_Votacao FROM ELEITOR_VOTACAO
+            WHERE ID_Eleitor = ? AND ID_Votacao = ?
+        """, (request.id_eleitor, request.id_votacao))
+        
+        resultado = cursor.fetchone()
+        if not resultado:
+            return {"erro": "Eleitor não está registrado para essa votação."}
+
+        id_eleitor_votacao = resultado[0]
+
+        # Verifica se já existe voto
+        cursor.execute("""
+            SELECT 1 FROM VOTO
+            WHERE ID_Eleitor_Votacao = ?
+        """, (id_eleitor_votacao,))
+        
+        if cursor.fetchone():
+            return {"ja_votou": True, "mensagem": "Eleitor já votou nesta votação."}
+
+        # Caso não tenha votado, insere o voto
+        cursor.execute("""
+            INSERT INTO VOTO (ID_Eleitor_Votacao, ID_Objeto_Votacao)
+            VALUES (?, ?)
+        """, (id_eleitor_votacao, request.id_objeto_votacao))
+
+        conn.commit()
+        return {"voto_registrado": True, "mensagem": "Voto registrado com sucesso."}
+    
+    except sqlite3.Error as e:
+        return {"erro": str(e)}
+
+    finally:
+        conn.close()
