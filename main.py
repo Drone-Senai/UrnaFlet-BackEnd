@@ -147,11 +147,11 @@ def registrar(votacao: Votacao):
 def listar_votacoes():
     conn = sqlite3.connect("votacao.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT ID_Votacao, Nome, Tema, Data_inicio, Data_final FROM VOTACAO")
+    cursor.execute("SELECT ID_Votacao, Nome, Tema, Data_inicio, Data_final, Status_Votacao FROM VOTACAO")
     registros = cursor.fetchall()
     conn.close()
 
-    colunas = ["ID_Votacao", "Nome", "Tema", "Data_inicio", "Data_final"]
+    colunas = ["ID_Votacao", "Nome", "Tema", "Data_inicio", "Data_final", "Status_Votacao"]
     return [dict(zip(colunas, linha)) for linha in registros]
 
 # ROTA QUE RETORNA TODAS AS VOTAÇÕES E OBJETOS
@@ -179,11 +179,25 @@ def read_root():
 # ---------------------------------------
 
 @app.get("/objetos")
-def listar_objetos():
+def listar_objetos(id_votacao: str = None):
     conn = sqlite3.connect("votacao.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT ID_Objeto, Nome FROM OBJETO")
+    if not id_votacao:
+        cursor.execute("SELECT ID_Objeto, Nome FROM OBJETO")
+    
+    else:
+        cursor.execute("""
+            SELECT 
+                a.ID_Objeto,
+                a.Nome
+            FROM 
+                OBJETO AS a
+            JOIN OBJETO_VOTACAO AS b
+                ON a.ID_Objeto = b.ID_Objeto
+            WHERE b.ID_Votacao = ?
+        """, (id_votacao,)) 
+
     objetos = cursor.fetchall()
     conn.close()
 
